@@ -2,7 +2,7 @@ import httplib2
 import pandas as pd
 import apiclient
 import oauth2client
-
+from oauth2client.file import Storage
 from os.path import expanduser
 
 class GoogleSheet():
@@ -11,8 +11,8 @@ class GoogleSheet():
     """
     def __init__(self):
 
-        credential_path = expanduser("~") + "/.credentials/sheets_api_credentials.json"
-        store = oauth2client.file.Storage(credential_path)
+        credential_path = expanduser("~") + "/.credentials/sheets_credentials_miamed.json"
+        store = Storage(credential_path)
         self.credentials = store.get()
         self.service = self._initiate_api_connection()
 
@@ -49,11 +49,29 @@ class GoogleSheet():
             for missing_item in range(len(header) - len(line)):
                 line.append(pd.np.nan)
 
-        df = pd.DataFrame(data, columns=header)
-        return df
+        return pd.DataFrame(data, columns=header)
 
-    def write_dataframe_to_sheet(self, spreadsheet_id, dataframe):
+    def write_dataframe_to_sheet(self, spreadsheet_id, dataframe, sheet_name, clear_sheet=False):
+        if clear_sheet:
+            self.clear_sheet(spreadsheet_id, sheet_name)
+
+        # grab all values
+        data = dataframe.values.tolist()
+
+        # grab header
+        header = dataframe.columns.tolist()
+
+        # set header as first item in list of lists
+        data.insert(0, header)
+
+        body = {
+            'values': data
+        }
+
+        self.service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id, range=sheet_name,
+            valueInputOption="USER_ENTERED", body=body).execute()
+
+    def clear_sheet(self, spreadsheet_id, sheet_name):
         pass
-
-
 
